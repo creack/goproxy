@@ -1,17 +1,10 @@
-# goproxy
-GoProxy is a ReverseProxy / LoadBalancer helper for Golang
-
-# Example
-
-```go
-package main
+package goproxy
 
 import (
 	"fmt"
 	"log"
 	"net/http"
 
-	"github.com/creack/goproxy"
 	"github.com/creack/goproxy/registry"
 )
 
@@ -25,12 +18,11 @@ var ServiceRegistry = registry.DefaultRegistry{
 	},
 }
 
-func main() {
-	http.HandleFunc("/", goproxy.NewMultipleHostReverseProxy(ServiceRegistry))
+func Example() {
+	http.HandleFunc("/", NewMultipleHostReverseProxy(ServiceRegistry))
 	http.HandleFunc("/health", func(w http.ResponseWriter, req *http.Request) {
 		fmt.Fprintf(w, "%v\n", ServiceRegistry)
 	})
 	println("ready")
 	log.Fatal(http.ListenAndServe(":9090", nil))
 }
-```

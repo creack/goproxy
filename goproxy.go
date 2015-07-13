@@ -1,3 +1,7 @@
+// Package goproxy is a LoadBalancer based on httputil.ReverseProxy.
+//
+// ExtractNameVersion and LoadBalance can be overridden in order to customize
+// the behavior.
 package goproxy
 
 import (

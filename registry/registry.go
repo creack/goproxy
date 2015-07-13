@@ -1,3 +1,4 @@
+// Package registry defines the Registry interface which can be used with goproxy.
 package registry
 
 import (

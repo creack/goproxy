@@ -34,3 +34,9 @@ func main() {
 	log.Fatal(http.ListenAndServe(":9090", nil))
 }
 ```
+
+# Limitations
+
+Because we control only the connection, we can't have different http routes accross the same service.
+For the same reason, we can't have both HTTP and HTTPS for the same service.
+For now, this load balancer only supports HTTP.

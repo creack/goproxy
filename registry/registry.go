@@ -79,7 +79,7 @@ begin:
 		if svc == endpoint {
 			copy(service[version][i:], service[version][i+1:])
 			service[version][len(service[version])-1] = ""
-			service[version] = service[version][:len(service)-1]
+			service[version] = service[version][:len(service[version])-1]
 			goto begin
 		}
 	}

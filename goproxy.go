@@ -7,6 +7,7 @@ package goproxy
 import (
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"net"
 	"net/http"
@@ -81,9 +82,23 @@ func loadBalance(network, serviceName, serviceVersion string, reg registry.Regis
 	return nil, fmt.Errorf("No endpoint available for %s/%s", serviceName, serviceVersion)
 }
 
+// isWebsocket checks if the given request is a websocket.
+func isWebsocket(req *http.Request) (b bool) {
+	if c := req.Header.Get("Connection"); c != "" && strings.ToLower(c) != "upgrade" {
+		return false
+	}
+	if u := req.Header.Get("Upgrade"); u != "" && strings.ToLower(u) != "websocket" {
+		return false
+	}
+	return true
+}
+
 // NewMultipleHostReverseProxy creates a reverse proxy handler
-// that will randomly select a host from the passed `targets`
-func NewMultipleHostReverseProxy(reg registry.Registry) http.HandlerFunc {
+// that will load balance using the given registry.
+// Optionnaly, a logger can be set to handle error outputs and
+// a middleware can be given.
+// The middleware receive the name and version as well as the handler. Useful for logging/metrics.
+func NewMultipleHostReverseProxy(reg registry.Registry, errorLog *log.Logger, middleware func(name, version string, handler http.Handler) http.Handler) http.HandlerFunc {
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		Dial: func(network, addr string) (net.Conn, error) {
@@ -102,12 +117,28 @@ func NewMultipleHostReverseProxy(reg registry.Registry) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		(&httputil.ReverseProxy{
-			Director: func(req *http.Request) {
-				req.URL.Scheme = "http"
-				req.URL.Host = name + "/" + version
+		reverseProxy := &httputil.ReverseProxy{
+			Director: func(req1 *http.Request) {
+				req1.URL.Scheme = "http"
+				req1.URL.Host = name + "/" + version
 			},
 			Transport: transport,
-		}).ServeHTTP(w, req)
+			ErrorLog:  errorLog,
+		}
+
+		var handler http.Handler
+
+		// TODO: make this more generic for any kind of hijacker.
+		if isWebsocket(req) {
+			handler = websocketProxy(name, version, reg)
+		} else {
+			handler = reverseProxy
+		}
+
+		if middleware != nil {
+			middleware(name, version, handler).ServeHTTP(w, req)
+		} else {
+			handler.ServeHTTP(w, req)
+		}
 	}
 }

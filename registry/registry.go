@@ -18,10 +18,12 @@ var (
 // Registry is an interface used to lookup the target host
 // for a given service name / version pair.
 type Registry interface {
-	Add(name, version, endpoint string)                // Add an endpoint to our registry
-	Delete(name, version, endpoint string)             // Remove an endpoint to our registry
+	Add(name, version, endpoint string)                // Add an endpoint to our registry.
+	DeleteService(name string)                         // Remove an endpoint to our registry.
+	DeleteVersion(name, version string)                // Remove an endpoint to our registry.
+	DeleteEndpoint(name, version, endpoint string)     // Remove an endpoint to our registry.
 	Failure(name, version, endpoint string, err error) // Mark an endpoint as failed.
-	Lookup(name, version string) ([]string, error)     // Return the endpoint list for the given service name/version
+	Lookup(name, version string) ([]string, error)     // Return the endpoint list for the given service name/version.
 }
 
 // DefaultRegistry is a basic registry using the following format:
@@ -36,9 +38,9 @@ type Registry interface {
 type DefaultRegistry map[string]map[string][]string
 
 // Lookup return the endpoint list for the given service name/version.
-func (r DefaultRegistry) Lookup(name, version string) ([]string, error) {
+func (reg DefaultRegistry) Lookup(name, version string) ([]string, error) {
 	lock.RLock()
-	targets, ok := r[name][version]
+	targets, ok := reg[name][version]
 	lock.RUnlock()
 	if !ok {
 		return nil, ErrServiceNotFound
@@ -47,30 +49,30 @@ func (r DefaultRegistry) Lookup(name, version string) ([]string, error) {
 }
 
 // Failure marks the given endpoint for service name/version as failed.
-func (r DefaultRegistry) Failure(name, version, endpoint string, err error) {
+func (reg DefaultRegistry) Failure(name, version, endpoint string, err error) {
 	// Would be used to remove an endpoint from the rotation, log the failure, etc.
 	log.Printf("Error accessing %s/%s (%s): %s", name, version, endpoint, err)
 }
 
 // Add adds the given endpoit for the service name/version.
-func (r DefaultRegistry) Add(name, version, endpoint string) {
+func (reg DefaultRegistry) Add(name, version, endpoint string) {
 	lock.Lock()
 	defer lock.Unlock()
 
-	service, ok := r[name]
+	service, ok := reg[name]
 	if !ok {
 		service = map[string][]string{}
-		r[name] = service
+		reg[name] = service
 	}
 	service[version] = append(service[version], endpoint)
 }
 
-// Delete removes the given endpoit for the service name/version.
-func (r DefaultRegistry) Delete(name, version, endpoint string) {
+// DeleteEndpoint removes the given endpoit for the service name/version.
+func (reg DefaultRegistry) DeleteEndpoint(name, version, endpoint string) {
 	lock.Lock()
 	defer lock.Unlock()
 
-	service, ok := r[name]
+	service, ok := reg[name]
 	if !ok {
 		return
 	}
@@ -83,4 +85,24 @@ begin:
 			goto begin
 		}
 	}
+}
+
+// DeleteVersion removes the given version for the service name.
+func (reg DefaultRegistry) DeleteVersion(name, version string) {
+	lock.Lock()
+	defer lock.Unlock()
+
+	service, ok := reg[name]
+	if !ok {
+		return
+	}
+	delete(service, version)
+}
+
+// DeleteService removes the given service.
+func (reg DefaultRegistry) DeleteService(name string) {
+	lock.Lock()
+	defer lock.Unlock()
+
+	delete(reg, name)
 }

@@ -84,10 +84,10 @@ func loadBalance(network, serviceName, serviceVersion string, reg registry.Regis
 
 // isWebsocket checks if the given request is a websocket.
 func isWebsocket(req *http.Request) (b bool) {
-	if c := req.Header.Get("Connection"); c != "" && strings.ToLower(c) != "upgrade" {
+	if c := req.Header.Get("Connection"); c == "" || strings.ToLower(c) != "upgrade" {
 		return false
 	}
-	if u := req.Header.Get("Upgrade"); u != "" && strings.ToLower(u) != "websocket" {
+	if u := req.Header.Get("Upgrade"); u == "" || strings.ToLower(u) != "websocket" {
 		return false
 	}
 	return true

@@ -82,8 +82,8 @@ func loadBalance(network, serviceName, serviceVersion string, reg registry.Regis
 	return nil, fmt.Errorf("No endpoint available for %s/%s", serviceName, serviceVersion)
 }
 
-// isWebsocket checks if the given request is a websocket.
-func isWebsocket(req *http.Request) (b bool) {
+// IsWebsocket checks if the given request is a websocket.
+func IsWebsocket(req *http.Request) (b bool) {
 	if c := req.Header.Get("Connection"); c == "" || strings.ToLower(c) != "upgrade" {
 		return false
 	}
@@ -129,7 +129,7 @@ func NewMultipleHostReverseProxy(reg registry.Registry, errorLog *log.Logger, mi
 		var handler http.Handler
 
 		// TODO: make this more generic for any kind of hijacker.
-		if isWebsocket(req) {
+		if IsWebsocket(req) {
 			handler = websocketProxy(name, version, reg)
 		} else {
 			handler = reverseProxy

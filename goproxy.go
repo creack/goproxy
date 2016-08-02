@@ -50,6 +50,11 @@ func extractNameVersion(target *url.URL) (name, version string, err error) {
 	return name, version, nil
 }
 
+var dialer = (&net.Dialer{
+	Timeout:   2 * time.Second,
+	KeepAlive: 10 * time.Second,
+}).Dial
+
 // loadBalance is a basic loadBalancer which randomly
 // tries to connect to one of the endpoints and try again
 // in case of failure.
@@ -68,7 +73,7 @@ func loadBalance(network, serviceName, serviceVersion string, reg registry.Regis
 		endpoint := endpoints[i]
 
 		// Try to connect
-		conn, err := net.DialTimeout(network, endpoint, 2*time.Second)
+		conn, err := dialer(network, endpoint)
 		if err != nil {
 			reg.Failure(serviceName, serviceVersion, endpoint, err)
 			// Failure: remove the endpoint from the current list and try again.
@@ -102,6 +107,7 @@ func NewMultipleHostReverseProxy(reg registry.Registry, errorLog *log.Logger, mi
 	transport := &http.Transport{
 		MaxIdleConnsPerHost:   50,
 		ResponseHeaderTimeout: 10 * time.Second,
+		ExpectContinueTimeout: 3 * time.Second,
 		Proxy: http.ProxyFromEnvironment,
 		Dial: func(network, addr string) (net.Conn, error) {
 			addr = strings.Split(addr, ":")[0]

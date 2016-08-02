@@ -68,7 +68,7 @@ func loadBalance(network, serviceName, serviceVersion string, reg registry.Regis
 		endpoint := endpoints[i]
 
 		// Try to connect
-		conn, err := net.Dial(network, endpoint)
+		conn, err := net.DialTimeout(network, endpoint, 2*time.Second)
 		if err != nil {
 			reg.Failure(serviceName, serviceVersion, endpoint, err)
 			// Failure: remove the endpoint from the current list and try again.
@@ -100,6 +100,8 @@ func IsWebsocket(req *http.Request) (b bool) {
 // The middleware receive the name and version as well as the handler. Useful for logging/metrics.
 func NewMultipleHostReverseProxy(reg registry.Registry, errorLog *log.Logger, middleware func(name, version string, handler http.Handler) http.Handler) http.HandlerFunc {
 	transport := &http.Transport{
+		MaxIdleConnsPerHost:   50,
+		ResponseHeaderTimeout: 10 * time.Second,
 		Proxy: http.ProxyFromEnvironment,
 		Dial: func(network, addr string) (net.Conn, error) {
 			addr = strings.Split(addr, ":")[0]

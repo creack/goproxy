@@ -107,7 +107,6 @@ func NewMultipleHostReverseProxy(reg registry.Registry, errorLog *log.Logger, mi
 	transport := &http.Transport{
 		MaxIdleConnsPerHost:   50,
 		ResponseHeaderTimeout: 10 * time.Second,
-		ExpectContinueTimeout: 3 * time.Second,
 		Proxy: http.ProxyFromEnvironment,
 		Dial: func(network, addr string) (net.Conn, error) {
 			addr = strings.Split(addr, ":")[0]

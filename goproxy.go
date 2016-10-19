@@ -129,8 +129,9 @@ func NewMultipleHostReverseProxy(reg registry.Registry, errorLog *log.Logger, mi
 				req1.URL.Scheme = "http"
 				req1.URL.Host = name + "/" + version
 			},
-			Transport: transport,
-			ErrorLog:  errorLog,
+			Transport:     transport,
+			ErrorLog:      errorLog,
+			FlushInterval: 2 * time.Second,
 		}
 
 		var handler http.Handler

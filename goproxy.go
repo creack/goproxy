@@ -63,7 +63,9 @@ func loadBalance(network, serviceName, serviceVersion string, reg registry.Regis
 			break
 		}
 		// Select a random endpoint
-		i := rand.Int() % len(endpoints)
+		rand.Seed(time.Now().Unix())
+		i := rand.Intn(len(endpoints))
+		// i := rand.Int() % len(endpoints)
 		endpoint := endpoints[i]
 
 		// Try to connect
